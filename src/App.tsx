@@ -15,6 +15,7 @@ import {
   parseAuthRequest,
   persistAuthRequest,
   requestOAuthRestart,
+  resolveLogoutDestination,
   type AuthResult,
 } from "./auth-request";
 import { lookupAuthMethod } from "./auth-method";
@@ -108,6 +109,19 @@ export function App() {
   );
   const embedded = window.parent !== window;
   const returnTo = useMemo(() => localReturnPath(window.location.search), []);
+  const logoutRequested = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("action") === "logout" || params.get("logout") === "1";
+  }, []);
+  const logoutDestination = useMemo(
+    () =>
+      resolveLogoutDestination(
+        new URLSearchParams(window.location.search).get("return_to"),
+        window.location.origin,
+        allowedRedirectOrigins(),
+      ),
+    [],
+  );
   const socialFlow = parsedRequest.request.flow === "social";
   const authorizationPage = window.location.pathname === "/authorize";
   const authorizationId = authorizationPage
@@ -118,7 +132,7 @@ export function App() {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
-  const [busy, setBusy] = useState(socialFlow);
+  const [busy, setBusy] = useState(socialFlow || logoutRequested);
   const [error, setError] = useState(
     parsedRequest.error || (authorizationPage && !authorizationId ? "授权请求无效。" : ""),
   );
@@ -197,6 +211,16 @@ export function App() {
   useEffect(() => {
     if (authStateRead.current) return;
     authStateRead.current = true;
+
+    if (logoutRequested) {
+      void signOutCurrentSession()
+        .catch(() => undefined)
+        .finally(() => {
+          clearAuthRequest(sessionStorage);
+          window.location.replace(logoutDestination);
+        });
+      return;
+    }
 
     if (parsedRequest.error) {
       if (socialFlow) {

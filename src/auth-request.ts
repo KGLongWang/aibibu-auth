@@ -90,6 +90,26 @@ export function allowedRedirectOrigins(): Set<string> {
   )
 }
 
+/** Resolve a post-logout destination without allowing an untrusted redirect. */
+export function resolveLogoutDestination(
+  value: string | null | undefined,
+  authOrigin: string,
+  allowedOrigins: ReadonlySet<string>,
+): string {
+  const candidate = value?.trim();
+  if (!candidate) return "/";
+  try {
+    const url = new URL(candidate, authOrigin);
+    if (!['http:', 'https:'].includes(url.protocol)) return '/';
+    if (url.origin === authOrigin) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+    return allowedOrigins.has(url.origin) ? url.toString() : '/';
+  } catch {
+    return '/';
+  }
+}
+
 export function createAuthRequestState(
   cryptoProvider: Crypto = crypto
 ): string {

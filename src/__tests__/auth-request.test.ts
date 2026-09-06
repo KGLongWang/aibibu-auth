@@ -7,6 +7,7 @@ import {
   deliverSocialAuthResult,
   isSocialAuthSuccessMessage,
   parseAuthRequest,
+  resolveLogoutDestination,
 } from '../auth-request'
 
 const allowed = new Set(['https://newapi.aibibu.com', 'http://127.0.0.1:5173'])
@@ -33,6 +34,30 @@ describe('central auth request', () => {
     )
 
     expect(parsed.error).toBe('此应用尚未获得 Aibibu 登录授权。')
+  })
+
+  test('allows logout to return only to an approved app origin', () => {
+    expect(
+      resolveLogoutDestination(
+        'https://newapi.aibibu.com/signed-out?from=shop',
+        'https://auth.aibibu.com',
+        allowed
+      )
+    ).toBe('https://newapi.aibibu.com/signed-out?from=shop')
+    expect(
+      resolveLogoutDestination(
+        'https://evil.example/steal',
+        'https://auth.aibibu.com',
+        allowed
+      )
+    ).toBe('/')
+    expect(
+      resolveLogoutDestination(
+        '/signed-out',
+        'https://auth.aibibu.com',
+        allowed
+      )
+    ).toBe('/signed-out')
   })
 
   test('restores the request after an OAuth round trip', () => {
