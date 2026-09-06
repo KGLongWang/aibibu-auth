@@ -1,0 +1,21 @@
+services:
+  aibibu-auth:
+    build:
+      context: .
+      args:
+        SUPABASE_URL: ${SUPABASE_URL}
+        SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+        AUTH_ALLOWED_REDIRECT_ORIGINS: ${AUTH_ALLOWED_REDIRECT_ORIGINS}
+    container_name: aibibu-auth
+    ports:
+      - "127.0.0.1:4174:80"
+    environment:
+      AUTH_ALLOWED_FRAME_ANCESTORS: ${AUTH_ALLOWED_FRAME_ANCESTORS:-'none'}
+    networks:
+      - aibibu_internal
+    restart: unless-stopped
+
+networks:
+  aibibu_internal:
+    external: true
+    name: aibibu_internal
